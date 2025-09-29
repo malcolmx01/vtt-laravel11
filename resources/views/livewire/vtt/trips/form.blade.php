@@ -159,7 +159,7 @@
                                         </div>
                                         <div class="col-md-2 mb-3">
                                             <label class="form-label required">Ending ODO</label>
-                                            <input wire:model="trip.ending_ODO" type="number" step='1' min="0" class="form-control @if(!$disable) form-control-solid @endif  @if($errors->has('trip.ending_ODO')) is-invalid @endif" placeholder="Ending ODO" required @if($disable) disabled @endif>
+                                            <input wire:model="trip.ending_ODO" type="number" step='1' min="0" class="form-control @if(!$disable) form-control-solid @endif @if($errors->has('trip.ending_ODO')) is-invalid @endif" placeholder="Ending ODO" required @if($disable) disabled @endif>
                                             @error('trip.ending_ODO') <span class="invalid-feedback">{{ $message }}</span>@enderror
                                         </div>
                                     </div>
@@ -171,7 +171,7 @@
                                         </div>
                                         <div class="col-md-2 mb-3">
                                             <label class="form-label">Total Mileage</label>
-                                            <input wire:model="trip.total_mileage" type="number" step='1' min="0" class="form-control @if(!$disable) form-control-solid @endif  @if($errors->has('trip.total_mileage')) is-invalid @endif" placeholder="Total Mileage" required @if($disable) disabled @endif>
+                                            <input wire:model="trip.total_mileage" type="number" step='1' min="0" class="form-control bg-light @if($errors->has('trip.total_mileage')) is-invalid @endif" placeholder="Auto-calculated" readonly>
                                             @error('trip.total_mileage') <span class="invalid-feedback">{{ $message }}</span>@enderror
                                         </div>
                                     </div>

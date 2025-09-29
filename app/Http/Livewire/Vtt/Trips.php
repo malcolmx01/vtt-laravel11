@@ -111,7 +111,7 @@ class Trips extends Component
 
         'trip.destination'              => 'required|string',
         'trip.arrival'                  => 'required|date',
-        'trip.ending_ODO'               => 'nullable|integer',
+        'trip.ending_ODO'               => 'required|integer|min:0',
 
         'trip.total_mileage'            => 'nullable|integer',
 
@@ -143,10 +143,14 @@ class Trips extends Component
         'trip.origin.required' => 'Origin cannot be empty.',
         'trip.destination.required' => 'Destination cannot be empty.',
         'trip.departure.required' => 'Departure date cannot be empty.',
+        'trip.starting_ODO.required' => 'Starting ODO cannot be empty.',
+        'trip.starting_ODO.min' => 'Starting ODO must be at least 0.',
+        'trip.ending_ODO.required' => 'Ending ODO cannot be empty.',
+        'trip.ending_ODO.min' => 'Ending ODO must be at least 0.',
     ];
 
     public function mount()
-    {
+    {                                                                      
         $this->seId = Str::random();
         $this->addItemUniqid = Str::random();
         $this->listOfDepartment = Department::all();
@@ -154,6 +158,65 @@ class Trips extends Component
         $this->DocStatus = DocStatus::all();
         $this->setstatusid = Str::random();
         $this->VehiclePlateNo = Vehicle::all();
+    }
+
+    public function updated($propertyName)
+    {
+        // Calculate total mileage when ODO values change
+        if ($propertyName === 'trip.starting_ODO' || $propertyName === 'trip.ending_ODO') {
+            $this->calculateTotalMileage();
+            
+            // Run real-time validation for ODO comparison
+            if ($propertyName === 'trip.ending_ODO') {
+                $this->validateOdometerValues();
+            }
+        }
+    }
+
+    private function calculateTotalMileage()
+    {
+        // Only calculate if both values are present and valid
+        if (!empty($this->trip->starting_ODO) && !empty($this->trip->ending_ODO)) {
+            $startingODO = (int)$this->trip->starting_ODO;
+            $endingODO = (int)$this->trip->ending_ODO;
+            
+            if ($endingODO >= $startingODO) {
+                $this->trip->total_mileage = $endingODO - $startingODO;
+                // Clear any previous validation errors for ending_ODO
+                $this->resetErrorBag('trip.ending_ODO');
+            } else {
+                $this->trip->total_mileage = null; // Clear if invalid
+                // Don't show error here, let the validateOdometerValues() method handle it
+            }
+        } else {
+            $this->trip->total_mileage = null; // Clear if either field is empty
+        }
+    }
+
+    private function validateOdometerValues()
+    {
+        // Custom validation for ODO comparison
+        if (!empty($this->trip->starting_ODO) && !empty($this->trip->ending_ODO)) {
+            if ((int)$this->trip->ending_ODO < (int)$this->trip->starting_ODO) {
+                $this->addError('trip.ending_ODO', 'Ending ODO must be greater than or equal to Starting ODO.');
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function sanitizeOdometerData()
+    {
+        // Convert empty strings to null for database compatibility
+        if ($this->trip->starting_ODO === '') {
+            $this->trip->starting_ODO = null;
+        }
+        if ($this->trip->ending_ODO === '') {
+            $this->trip->ending_ODO = null;
+        }
+        if ($this->trip->total_mileage === '') {
+            $this->trip->total_mileage = null;
+        }
     }
 
     public function updatingSearch() { $this->resetPage(); }
@@ -251,6 +314,14 @@ class Trips extends Component
 
     public function store()
     {
+        // Sanitize data first
+        $this->sanitizeOdometerData();
+        
+        // Run custom ODO validation
+        if (!$this->validateOdometerValues()) {
+            return; // Stop execution if validation fails
+        }
+
         $dynamicInput = [];
 
         if(!empty($this->input)){
@@ -267,25 +338,23 @@ class Trips extends Component
 
             'trip.origin'                   => 'required|string',
             'trip.departure'                => 'required|date',
-            'trip.starting_ODO'             => 'required|integer',
+            'trip.starting_ODO'             => 'required|integer|min:0',
 
             'trip.destination'              => 'required|string',
             'trip.arrival'                  => 'required|date',
-            'trip.ending_ODO'               => 'nullable|integer',
+            'trip.ending_ODO'               => 'required|integer|min:0',
 
-            'trip.total_mileage'            => 'nullable|integer',
+            'trip.total_mileage'            => 'nullable|integer|min:0',
 
             'trip.purpose_trip_details'     => 'nullable|string',
             'trip.authorized_passengers'    => 'nullable|string',
             'trip.visited_places'           => 'nullable|string',
-            'trip.vehicle_plate_no'         => 'nullable|string',
-//        'trip.remarks'                  => 'nullable|string',
+            'trip.vehicle_plate_no'         => 'required|string',
         ];
 
         $validationRules = array_merge($staticInput, $mergeResult);
         $validate = $this->validate($validationRules);
 
-//        $this->validate();
         $this->trip->save();
 
         // Save Uploaded Image
@@ -375,6 +444,13 @@ class Trips extends Component
 
     public function update()
     {
+        // Sanitize data first
+        $this->sanitizeOdometerData();
+        
+        // Run custom ODO validation
+        if (!$this->validateOdometerValues()) {
+            return; // Stop execution if validation fails
+        }
 
         $dynamicInput = [];
 
@@ -392,25 +468,23 @@ class Trips extends Component
 
             'trip.origin'                   => 'required|string',
             'trip.departure'                => 'required|date',
-            'trip.starting_ODO'             => 'required|integer',
+            'trip.starting_ODO'             => 'required|integer|min:0',
 
             'trip.destination'              => 'required|string',
             'trip.arrival'                  => 'required|date',
-            'trip.ending_ODO'               => 'nullable|integer',
+            'trip.ending_ODO'               => 'required|integer|min:0',
 
-            'trip.total_mileage'            => 'nullable|integer',
+            'trip.total_mileage'            => 'nullable|integer|min:0',
 
             'trip.purpose_trip_details'     => 'nullable|string',
             'trip.authorized_passengers'    => 'nullable|string',
             'trip.visited_places'           => 'nullable|string',
-            'trip.vehicle_plate_no'         => 'nullable|string',
-//        'trip.remarks'                  => 'nullable|string',
+            'trip.vehicle_plate_no'         => 'required|string',
         ];
 
         $validationRules = array_merge($staticInput, $mergeResult);
         $validate = $this->validate($validationRules);
 
-//        $this->validate();
         $this->trip->update();
 
         // Save Uploaded Image
@@ -434,7 +508,6 @@ class Trips extends Component
         ]);
 
         $this->dispatchBrowserEvent('closeFormModal');
-
     }
 
 
